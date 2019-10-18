@@ -11,7 +11,7 @@ PyRun::PyRun(QString execFile)
     this->execFile = execFile.toStdWString();
 
     QStringList pythonPath;
-    pythonPath << QDir::toNativeSeparators(QFileInfo(QFileInfo(execFile).absoluteDir(), "libpy34.zip").canonicalFilePath());
+    pythonPath << QDir::toNativeSeparators(QFileInfo(QFileInfo(execFile).absoluteDir(), "libpy36.zip").canonicalFilePath());
 
     this->pythonPath = pythonPath.join(":").toStdWString();
 

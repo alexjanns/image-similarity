@@ -18,3 +18,7 @@ Img_Search_Result::Img_Search_Result(PyObject *poDicts)
     // Release reference to result
     Py_XDECREF(poDicts);
 }
+
+std::vector<DB_Entry> Img_Search_Result::get_result(){
+    return this->result;
+}

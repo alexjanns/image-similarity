@@ -43,10 +43,10 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32: LIBS += -LC:/Users/Alexander/Anaconda3/libs/ -lpython37
+win32: LIBS += -LC:/Users/Alex/Anaconda3/envs/tensorflow-gpu/libs/ -lpython36
 
-INCLUDEPATH += C:/Users/Alexander/Anaconda3/include
-DEPENDPATH += C:/Users/Alexander/Anaconda3/libs
+INCLUDEPATH += C:/Users/Alex/Anaconda3/envs/tensorflow-gpu/include
+DEPENDPATH += C:/Users/Alex/Anaconda3/envs/tensorflow-gpu/libs
 
-win32:!win32-g++: PRE_TARGETDEPS += C:/Users/Alexander/Anaconda3/libs/python37.lib
-#else:win32-g++: PRE_TARGETDEPS += C:/Users/Alexander/Anaconda3/libs/libpython37.a
+win32:!win32-g++: PRE_TARGETDEPS += C:/Users/Alexander/Anaconda3/envs/tensorflow-gpu/libs/python36.lib
+#else:win32-g++: PRE_TARGETDEPS += C:/Users/Alexander/Anaconda3/envs/tensorflow-gpu/libs/libpython36.a
