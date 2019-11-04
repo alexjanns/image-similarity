@@ -7,14 +7,14 @@ MainWindow::MainWindow(PyRun *pyrun, QWidget *parent) :
 {
     ui->setupUi(this);
     //Connect signals and slots
-    connect(ui->pushButton_build, &QPushButton::clicked, this, &MainWindow::on_pushButton_buildDB_clicked);
-    connect(ui->pushButton_ldDB, &QPushButton::clicked, this, &MainWindow::on_pushButton_loadDB_clicked);
-    connect(ui->pushButton_saveDB, &QPushButton::clicked, this, &MainWindow::on_pushButton_saveDB_clicked);
-    connect(ui->pushButton_ldWTH, &QPushButton::clicked, this, &MainWindow::on_pushButton_loadWeights_clicked);
-    connect(ui->pushButton_ldIMG, &QPushButton::clicked, this, &MainWindow::on_pushButton_loadIMG_clicked);
-    connect(ui->pushButton_search, &QPushButton::clicked, this, &MainWindow::on_pushButton_Search_clicked);
-    connect(ui->radioButton_PCA, &QRadioButton::clicked, this, &MainWindow::on_radioButton_PCA_checked);
-    connect(ui->radioButton_CONV, &QRadioButton::clicked, this, &MainWindow::on_radioButton_Convolutional_checked);
+    connect(ui->pushButton_build, &QPushButton::clicked, this, &MainWindow::onPushButtonBuildDBClicked);
+    connect(ui->pushButton_ldDB, &QPushButton::clicked, this, &MainWindow::onPushButtonLoadDBClicked);
+    connect(ui->pushButton_saveDB, &QPushButton::clicked, this, &MainWindow::onPushButtonSaveDBClicked);
+    connect(ui->pushButton_ldWTH, &QPushButton::clicked, this, &MainWindow::onPushButtonLoadWeightsClicked);
+    connect(ui->pushButton_ldIMG, &QPushButton::clicked, this, &MainWindow::onPushButtonLoadIMGClicked);
+    connect(ui->pushButton_search, &QPushButton::clicked, this, &MainWindow::onPushButtonSearchClicked);
+    connect(ui->radioButton_PCA, &QRadioButton::clicked, this, &MainWindow::onRadioButtonPCAChecked);
+    connect(ui->radioButton_CONV, &QRadioButton::clicked, this, &MainWindow::onRadioButtonConvolutionalChecked);
 
     //Prepare table
     this->model =  new QStandardItemModel(0, 3);
@@ -36,7 +36,7 @@ MainWindow::~MainWindow()
     delete model;
 }
 
-void MainWindow::on_pushButton_buildDB_clicked(){
+void MainWindow::onPushButtonBuildDBClicked(){
     QFileDialog dirdialog(this);
     dirdialog.setFileMode(QFileDialog::FileMode::Directory);
     dirdialog.setViewMode(QFileDialog::ViewMode::List);
@@ -47,14 +47,14 @@ void MainWindow::on_pushButton_buildDB_clicked(){
     }
 }
 
-void MainWindow::on_pushButton_loadDB_clicked(){
+void MainWindow::onPushButtonLoadDBClicked(){
     QString filename = QFileDialog::getOpenFileName(this, "Load Database", QDir::currentPath(), "Image Database (*.p)");
     if(!filename.isNull()){
         this->po_DB = pyRun->load_Database(filename);
     }
 }
 
-void MainWindow::on_pushButton_saveDB_clicked(){
+void MainWindow::onPushButtonSaveDBClicked(){
     QString filename = QFileDialog::getSaveFileName(this, "Save Database", QDir::currentPath(), "Image Database (*.p)");
     if(!filename.isNull()){
         if(QFileInfo::exists(filename)){
@@ -72,21 +72,21 @@ void MainWindow::on_pushButton_saveDB_clicked(){
 
 }
 
-void MainWindow::on_pushButton_loadWeights_clicked(){
+void MainWindow::onPushButtonLoadWeightsClicked(){
     QString filename = QFileDialog::getOpenFileName(this, "Load Weights", QDir::currentPath(), "Neural Network Weights (*.h5)");
     if(!filename.isNull()){
         pyRun->load_Weights(this->po_Encoder, filename);
     }
 }
 
-void MainWindow::on_pushButton_loadIMG_clicked(){
+void MainWindow::onPushButtonLoadIMGClicked(){
     QString filename = QFileDialog::getOpenFileName(this, "Load Image", QDir::currentPath(), "Images (*.jpg, *.jpeg, *.png, *.tga, *.bmp)");
     if(!filename.isNull()){
         this->searchImagePath = filename;
     }
 }
 
-void MainWindow::on_pushButton_Search_clicked(){
+void MainWindow::onPushButtonSearchClicked(){
     if (this->searchImagePath != ""){
         this->result = pyRun->image_Search(this->po_DB, this->po_Encoder, this->searchImagePath, ui->spinBox->value());
 
@@ -104,10 +104,10 @@ void MainWindow::on_pushButton_Search_clicked(){
     }
 }
 
-void MainWindow::on_radioButton_PCA_checked(){
+void MainWindow::onRadioButtonPCAChecked(){
     this->po_Encoder = pyRun->make_Neural_Network(pyRun->PCA);
 }
 
-void MainWindow::on_radioButton_Convolutional_checked(){
+void MainWindow::onRadioButtonConvolutionalChecked(){
     this->po_Encoder = pyRun->make_Neural_Network(pyRun->CONVOLUTIONAL);
 }

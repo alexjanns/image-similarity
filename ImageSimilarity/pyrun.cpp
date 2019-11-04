@@ -11,7 +11,7 @@ PyRun::PyRun(QString execFile)
     this->execFile = execFile.toStdWString();
 
     QStringList pythonPath;
-    pythonPath << QDir::toNativeSeparators(QFileInfo(QFileInfo(execFile).absoluteDir(), "libpy36.zip").canonicalFilePath());
+    pythonPath << QDir::toNativeSeparators(QFileInfo(QFileInfo(execFile).absoluteDir(), "lib").canonicalFilePath());
 
     this->pythonPath = pythonPath.join(":").toStdWString();
 
@@ -21,12 +21,18 @@ PyRun::PyRun(QString execFile)
     // Set module search path
     Py_SetPath(this->pythonPath.c_str());
 
-    Py_NoSiteFlag = 1;
+    //Py_NoSiteFlag = 1;
+    Py_UnbufferedStdioFlag = 1;
 
     // Initialize the Python interpreter
     Py_InitializeEx(0);
 
     qDebug() << "Python interpreter version:" << QString(Py_GetVersion());
+    PyRun_SimpleString("import os, sys\n"
+                       "sys.path.append(os.path.join(sys.path[0],'site-packages'))\n"
+                       "sys.path.append(os.path.normpath(os.path.join(sys.path[0], os.path.pardir,'DLLs')))\n"
+                       "print(sys.path)\n");
+
     qDebug() << "Python standard library path:" << QString::fromWCharArray(Py_GetPath());
 
     QFile f("://res/ImageSimilarity.py.codeobj");

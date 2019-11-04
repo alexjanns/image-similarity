@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/ImageSimilarity.py.codeobj</file>
+    </qresource>
+</RCC>

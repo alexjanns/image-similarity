@@ -50,3 +50,6 @@ DEPENDPATH += C:/Users/Alex/Anaconda3/envs/tensorflow-gpu/libs
 
 win32:!win32-g++: PRE_TARGETDEPS += C:/Users/Alexander/Anaconda3/envs/tensorflow-gpu/libs/python36.lib
 #else:win32-g++: PRE_TARGETDEPS += C:/Users/Alexander/Anaconda3/envs/tensorflow-gpu/libs/libpython36.a
+
+RESOURCES += \
+    image-similarity.qrc

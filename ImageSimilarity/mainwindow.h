@@ -22,14 +22,14 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_pushButton_buildDB_clicked();
-    void on_pushButton_loadDB_clicked();
-    void on_pushButton_saveDB_clicked();
-    void on_pushButton_loadWeights_clicked();
-    void on_pushButton_loadIMG_clicked();
-    void on_pushButton_Search_clicked();
-    void on_radioButton_PCA_checked();
-    void on_radioButton_Convolutional_checked();
+    void onPushButtonBuildDBClicked();
+    void onPushButtonLoadDBClicked();
+    void onPushButtonSaveDBClicked();
+    void onPushButtonLoadWeightsClicked();
+    void onPushButtonLoadIMGClicked();
+    void onPushButtonSearchClicked();
+    void onRadioButtonPCAChecked();
+    void onRadioButtonConvolutionalChecked();
 
 private:
     Ui::MainWindow *ui;
