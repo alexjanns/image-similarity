@@ -6,12 +6,7 @@ import tensorflow as tf
 import keras, keras.layers as L, keras.backend as K
 import numpy as np
 from scipy.misc import imresize
-from sklearn.model_selection import train_test_split
-#%matplotlib inline
-import matplotlib.pyplot as plt
-import keras_utils #taken from course "Introduction to Deep Learning" on Coursera
 import numpy as np
-from keras_utils import reset_tf_session
 import pickle
 
 #Constants
@@ -31,8 +26,23 @@ def load_images(paths):
         images.append(imresize(imageio.imread(path, pilmode="RGB"), IMG_SHAPE, interp="bilinear"))
     return np.concatenate([aux[None,...] for aux in images], axis=0)
 
+#Reset TF session every time a new NN is built
+def reset_tf_session():
+    curr_session = tf.get_default_session()
+    # close current session
+    if curr_session is not None:
+        curr_session.close()
+    # reset graph
+    K.clear_session()
+    # create new session
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    s = tf.InteractiveSession(config=config)
+    K.set_session(s)
+    return s
+
 #Neural Networks
-def build_pca_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE):
+def build_pca_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_file = "encoder_pca.h5"):
     """
     Here we define a simple linear autoencoder.
     We also flatten and un-flatten data to be compatible with image shapes
@@ -43,11 +53,11 @@ def build_pca_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE):
     encoder.add(L.Flatten())                  #flatten image to vector
     encoder.add(L.Dense(code_size))           #actual encoder
     
-    encoder.load_weights("encoder_pca.h5")
+    encoder.load_weights(weight_file)
     
     return encoder
 
-def build_deep_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE):
+def build_deep_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_file = "encoder.h5"):
     """PCA's deeper brother."""
     H,W,C = img_shape
     
@@ -64,10 +74,11 @@ def build_deep_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE):
     encoder.add(L.Flatten())
     encoder.add(L.Dense(code_size))
     
-    encoder.load_weights("encoder.h5")
+    encoder.load_weights(weight_file)
     
     return encoder
 
+#Load weights later
 def load_NN_weights(encoder, path):
     encoder.load_weights(path)
 
@@ -104,7 +115,176 @@ def similarity_search(inp_path, database, encoder, max_dist=0):
     hits = []
     for d in database.values():
         dist = l2_norm(code, d['code'])
-        if dist <= max_dist:
+        if max_dist == -1 or dist <= max_dist:
             d['distance'] = dist
             hits.append(d)
     return hits
+    
+###############################################################################
+# PyQt5 app
+###############################################################################
+
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+
+class ImageSimilarity(QWidget):
+    def __init__(self, parent=None):
+        super(ImageSimilarity, self).__init__(parent)
+        
+        #Build window
+        self.setWindowTitle('Image Similarity Search')
+        self.radio_pca = QRadioButton('PCA')
+        self.radio_pca.setChecked(True)
+        self.radio_deep = QRadioButton('Convolutional')
+        self.button_load_weights = QPushButton('Load Weights')
+        self.button_build_DB = QPushButton('Build Database')
+        self.button_save_DB = QPushButton('Save Database')
+        self.button_load_DB = QPushButton('Load Database')
+        self.button_load_img = QPushButton('Load Image')
+        self.button_search = QPushButton('Search')
+        self.button_search.setEnabled(False)
+        self.spinbox = QSpinBox()
+        self.spinbox.setMinimum(-1)
+        self.spinbox.setMaximum(99999)
+        self.spinbox.setValue(0)
+        self.table = QTableView()
+        self.model = QStandardItemModel(self)
+        self.model.setHorizontalHeaderLabels(["Name", "Path", "Distance"])
+        self.table.setModel(self.model)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        
+        hbox_radio = QHBoxLayout()
+        hbox_radio.addWidget(self.radio_pca)
+        hbox_radio.addWidget(self.radio_deep)
+        hbox_radio.addWidget(self.button_load_weights)
+        
+        hbox_buttons = QHBoxLayout()
+        hbox_buttons.addWidget(self.button_build_DB)
+        hbox_buttons.addWidget(self.button_load_DB)
+        hbox_buttons.addWidget(self.button_save_DB)
+        hbox_buttons.addWidget(self.button_load_img)
+        hbox_buttons.addWidget(self.button_search)
+        hbox_buttons.addWidget(self.spinbox)
+        
+        radio_widget = QWidget()
+        radio_widget.setLayout(hbox_radio)
+        
+        button_widget = QWidget()
+        button_widget.setLayout(hbox_buttons)
+        
+        external_layout = QVBoxLayout()
+        external_layout.addWidget(radio_widget)
+        external_layout.addWidget(button_widget)
+        external_layout.addWidget(self.table)
+        
+        self.setLayout(external_layout)
+        
+        #Connect signals and slots
+        self.radio_pca.toggled.connect(lambda:self.switch_NN(self.radio_pca))
+        self.radio_deep.toggled.connect(lambda:self.switch_NN(self.radio_deep))
+        self.button_load_weights.clicked.connect(self.load_weights)
+        self.button_build_DB.clicked.connect(self.build_DB)
+        self.button_load_DB.clicked.connect(self.load_DB)
+        self.button_save_DB.clicked.connect(self.save_DB)
+        self.button_load_img.clicked.connect(self.load_image)
+        self.button_search.clicked.connect(self.search)
+        
+        #Build neural network
+        self.encoder = build_pca_autoencoder()
+        
+        #See if a database already exists
+        if not os.path.isfile('std_db_pca.p'):
+            self.firstTimeStart('std_db_pca.p')
+        else:
+            self.database = load_database('std_db_pca.p')
+
+    def firstTimeStart(self, savename):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Please select a directory to search for images in. This will then build the search database.")
+        msg.setWindowTitle("Setup")
+        msg.setStandardButtons(QMessageBox.Ok)
+        if msg.exec_():
+            dir = None
+            while not dir:
+                dir = QFileDialog.getExistingDirectory(self, 'Choose Search Root', QDir.homePath(), QFileDialog.ShowDirsOnly)
+            self.database = build_code_database(self.encoder, dir)
+            save_database(self.database, savename)
+    
+    def load_image(self):
+        f = QFileDialog.getOpenFileName(self, 'Load Image', QDir.homePath(), "Image Files (*.jpg *.jpeg *.png *.tga *.bmp)")
+        if f:
+            self.search_img_path = f[0]
+            if not self.button_search.isEnabled():
+                self.button_search.setEnabled(True)
+    
+    def search(self):
+        if self.search_img_path:
+            hits = similarity_search(self.search_img_path, self.database, self.encoder, self.spinbox.value())
+            #Update Table Model
+            self.model.removeRows(0, self.model.rowCount())
+            for hit in hits:
+                row = [QStandardItem(hit['name']), QStandardItem(hit['path']), QStandardItem(str(hit['distance']))]
+                self.model.appendRow(row)
+
+    def switch_NN(self, b):
+        if b.text() == 'PCA' and b.isChecked():
+            reset_tf_session()
+            self.encoder = build_pca_autoencoder()
+            self.database = load_database('std_db_pca.p')
+            self.search_img_path = None
+            self.button_search.setEnabled(False)
+        elif b.text() == 'Convolutional' and b.isChecked():
+            reset_tf_session()
+            self.encoder = build_deep_autoencoder()
+            if os.path.isfile('std_db_deep.p'):
+                self.database = load_database('std_db_deep.p')
+            else:
+                self.firstTimeStart('std_db_deep.p')
+            self.search_img_path = None
+            self.button_search.setEnabled(False)
+        else:
+            pass
+    
+    def load_weights(self):
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.ExistingFile)
+        dlg.setFilter('Neural Network Weights (*.h5)')
+        filenames = QStringList()
+        if dlg.exec_():
+            filenames = dlg.selectedFiles()
+            load_NN_weights(self.encoder, filenames[0])
+    
+    def build_DB(self):
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.Directory)
+        dir = dlg.exec_()
+        if dir:
+            self.database = build_code_database(self.encoder, dir)
+    
+    def load_DB(self):
+        dbname = QFileDialog.getOpenFileName(self, 'Load Database', QDir.currentPath(), "Database (*.p)")
+        if dbname:
+            return load_database(dbname[0])
+        else:
+            return False
+    
+    def save_DB(self):
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.AnyFile)
+        dlg.setAcceptMode(QFileDialog.AcceptSave)
+        dlg.setFilter("Database files (*.p)")
+        filenames = QStringList()
+        if dlg.exec_():
+            filenames = dlg.selectedFiles()
+            save_database(self.database, filenames[0], True)
+
+def main():
+    app = QApplication(sys.argv)
+    ex = ImageSimilarity()
+    ex.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
