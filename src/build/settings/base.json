@@ -1,0 +1,6 @@
+{
+    "app_name": "ImageSimilarity",
+    "author": "Alexander Janns",
+    "main_module": "src/main/python/main.py",
+    "version": "0.0.0"
+}
