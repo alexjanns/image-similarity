@@ -13,6 +13,15 @@ import pickle
 IMG_SHAPE = (224, 224, 3)
 CODE_SIZE = 64
 
+#Get right application directory
+if getattr(sys, 'frozen', False):
+    # If the application is run as a bundle, the pyInstaller bootloader
+    # extends the sys module by a flag frozen=True and sets the app 
+    # path into variable _MEIPASS'.
+    application_path = sys._MEIPASS
+else:
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
 #Get a list of paths to all images in a given directory and subdirectories
 def get_image_paths(path=".", extensions=["jpg","jpeg","png","tga","bmp"]):
     result = []
@@ -42,7 +51,7 @@ def reset_tf_session():
     return s
 
 #Neural Networks
-def build_pca_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_file = "encoder_pca.h5"):
+def build_pca_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_file = os.path.join(application_path, "encoder_pca.h5")):
     """
     Here we define a simple linear autoencoder.
     We also flatten and un-flatten data to be compatible with image shapes
@@ -57,7 +66,7 @@ def build_pca_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_f
     
     return encoder
 
-def build_deep_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_file = "encoder.h5"):
+def build_deep_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_file = os.path.join(application_path, "encoder.h5")):
     """PCA's deeper brother."""
     H,W,C = img_shape
     
@@ -197,10 +206,10 @@ class ImageSimilarity(QWidget):
         self.encoder = build_pca_autoencoder()
         
         #See if a database already exists
-        if not os.path.isfile('std_db_pca.p'):
-            self.firstTimeStart('std_db_pca.p')
+        if not os.path.isfile(os.path.join(application_path, 'std_db_pca.p')):
+            self.firstTimeStart(os.path.join(application_path, 'std_db_pca.p'))
         else:
-            self.database = load_database('std_db_pca.p')
+            self.database = load_database(os.path.join(application_path, 'std_db_pca.p'))
 
     def firstTimeStart(self, savename):
         msg = QMessageBox()
@@ -235,16 +244,16 @@ class ImageSimilarity(QWidget):
         if b.text() == 'PCA' and b.isChecked():
             reset_tf_session()
             self.encoder = build_pca_autoencoder()
-            self.database = load_database('std_db_pca.p')
+            self.database = load_database(os.path.join(application_path, 'std_db_pca.p'))
             self.search_img_path = None
             self.button_search.setEnabled(False)
         elif b.text() == 'Convolutional' and b.isChecked():
             reset_tf_session()
             self.encoder = build_deep_autoencoder()
-            if os.path.isfile('std_db_deep.p'):
-                self.database = load_database('std_db_deep.p')
+            if os.path.isfile(os.path.join(application_path, 'std_db_deep.p')):
+                self.database = load_database(os.path.join(application_path, 'std_db_deep.p'))
             else:
-                self.firstTimeStart('std_db_deep.p')
+                self.firstTimeStart(os.path.join(application_path, 'std_db_deep.p'))
             self.search_img_path = None
             self.button_search.setEnabled(False)
         else:
