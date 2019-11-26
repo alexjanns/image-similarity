@@ -92,14 +92,15 @@ def load_NN_weights(encoder, path):
     encoder.load_weights(path)
 
 # Build code database, returns a dictionary of dictionaries containing image paths and the respective codes
-def build_code_database(encoder, path="."):
-    paths = get_image_paths(path)
+def build_code_database(encoder, paths, callback, graph):
     codes = {}
     i = 0
-    for p in paths:
-        codes[i]={'path':p, 'name':os.path.basename(p), 'code':encoder.predict(imresize(imageio.imread(p, pilmode="RGB"), IMG_SHAPE, interp="bilinear")[None])}
-        i += 1
-    return codes
+    with graph.as_default():
+        for p in paths:
+            codes[i]={'path':p, 'name':os.path.basename(p), 'code':encoder.predict(imresize(imageio.imread(p, pilmode="RGB"), IMG_SHAPE, interp="bilinear")[None])}
+            i += 1
+            callback(i, len(paths))
+        return codes
 
 def save_database(database, name, overwrite=False):
     if((os.path.isfile(name) and overwrite) or not os.path.isfile(name)):
@@ -140,7 +141,30 @@ from fbs_runtime.application_context.PyQt5 import ApplicationContext
 
 import sys
 
+class Build_Thread(QThread):
+    """
+    Runs the database building thread
+    """
+    processed = pyqtSignal(int, int)
+    finished = pyqtSignal(dict)
+    close = pyqtSignal()
+    
+    def __init__(self, encoder, paths, graph, parent=None):
+        super(Build_Thread, self).__init__(parent)
+        self.encoder = encoder
+        self.paths = paths
+        self.graph = graph
+    
+    def run(self):
+        database = build_code_database(self.encoder, self.paths, self.processed.emit, self.graph)
+        self.finished.emit(database)
+        self.close.emit()
+
+
 class ImageSimilarity(QWidget):
+    """
+    Main class
+    """
     def __init__(self, parent=None):
         super(ImageSimilarity, self).__init__(parent)
         
@@ -221,13 +245,55 @@ class ImageSimilarity(QWidget):
             dir = None
             while not dir:
                 dir = QFileDialog.getExistingDirectory(self, 'Choose Search Root', QDir.homePath(), QFileDialog.ShowDirsOnly)
-            self.database = build_code_database(self.encoder, dir)
-            save_database(self.database, savename)
+            paths = get_image_paths(dir)
+            self.progresswindow = self.make_progress_window(len(paths))
+            self.progresswindow.show()
+            graph = tf.get_default_graph()
+            build_thread = Build_Thread(self.encoder, paths, graph, self)
+            build_thread.processed.connect(self.update_progress)
+            build_thread.finished.connect(self.set_database)
+            build_thread.finished.connect(lambda db: save_database(db, savename))
+            build_thread.close.connect(self.progresswindow.close)
+            build_thread.close.connect(lambda : self.build_message(savename))
+            build_thread.start()
+    
+    def build_message(self, savename=None):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Database complete!")
+        if not savename:
+            msg.setInformativeText("Don't forget to save your database to avoid having to rebuild it upon program restart.")
+        else:
+            msg2.setInformativeText("The database was saved as {} and will be loaded as default on all subsequent program starts.".format(savename))
+        msg.setWindowTitle("Completed")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+    
+    def make_progress_window(self, max):
+        window = QDialog(self)
+        window.setWindowTitle("Building Search Database")
+        self.progress = QProgressBar(window)
+        self.progress.setMaximum(max)
+        self.progresslabel = QLabel(window)
+        self.progresslabel.setText("Processed: 0 of {}".format(max))
+        layout = QVBoxLayout()
+        window.setLayout(layout)
+        layout.addWidget(self.progresslabel)
+        layout.addWidget(self.progress)
+        window.setModal(Qt.ApplicationModal)
+        return window
+    
+    def update_progress(self, prog, max):
+        self.progresslabel.setText("Processed: {} of {}".format(prog, max))
+        self.progress.setValue(prog)
+    
+    def set_database(self, db):
+        self.database = db
     
     def load_image(self):
-        f = QFileDialog.getOpenFileName(self, 'Load Image', QDir.homePath(), "Image Files (*.jpg *.jpeg *.png *.tga *.bmp)")
+        f, _ = QFileDialog.getOpenFileName(self, 'Load Image', QDir.homePath(), "Image Files (*.jpg *.jpeg *.png *.tga *.bmp)")
         if f:
-            self.search_img_path = f[0]
+            self.search_img_path = f
             if not self.button_search.isEnabled():
                 self.button_search.setEnabled(True)
     
@@ -260,26 +326,35 @@ class ImageSimilarity(QWidget):
             pass
     
     def load_weights(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load Weights', QDir.currentPath(), 'Neural Network Weights (*.h5)')
+        filename, _ = QFileDialog.getOpenFileName(self, 'Load Weights', QDir.currentPath(), 'Neural Network Weights (*.h5)')
         if filename:
-            load_NN_weights(self.encoder, filename[0])
+            load_NN_weights(self.encoder, filename)
     
     def build_DB(self):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.Directory)
         if dlg.exec_():
             dirs = dlg.selectedFiles()
-            self.database = build_code_database(self.encoder, dirs[0])
+            paths = get_image_paths(dirs[0])
+            self.progresswindow = self.make_progress_window(len(paths))
+            self.progresswindow.show()
+            graph = tf.get_default_graph()
+            build_thread = Build_Thread(self.encoder, paths, graph, self)
+            build_thread.processed.connect(self.update_progress)
+            build_thread.finished.connect(self.set_database)
+            build_thread.close.connect(self.progresswindow.close)
+            build_thread.close.connect(self.build_message)
+            build_thread.start()
     
     def load_DB(self):
-        dbname = QFileDialog.getOpenFileName(self, 'Load Database', QDir.currentPath(), "Database files (*.p)")
+        dbname, _ = QFileDialog.getOpenFileName(self, 'Load Database', QDir.currentPath(), "Database files (*.p)")
         if dbname:
-            self.database = load_database(dbname[0])
+            self.database = load_database(dbname)
     
     def save_DB(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save Database', QDir.currentPath(), 'Database files (*.p)')
+        filename, _ = QFileDialog.getSaveFileName(self, 'Save Database', QDir.currentPath(), 'Database files (*.p)')
         if filename:
-            save_database(self.database, filename[0], True)
+            save_database(self.database, filename, True)
 
 def main():
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext
