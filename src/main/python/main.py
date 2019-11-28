@@ -139,7 +139,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from fbs_runtime.application_context.PyQt5 import ApplicationContext
 
-import sys
+from tablemodel import TableModel
 
 class Build_Thread(QThread):
     """
@@ -159,7 +159,6 @@ class Build_Thread(QThread):
         database = build_code_database(self.encoder, self.paths, self.processed.emit, self.graph)
         self.finished.emit(database)
         self.close.emit()
-
 
 class ImageSimilarity(QWidget):
     """
@@ -185,9 +184,11 @@ class ImageSimilarity(QWidget):
         self.spinbox.setMaximum(99999)
         self.spinbox.setValue(0)
         self.table = QTableView()
-        self.model = QStandardItemModel(self)
-        self.model.setHorizontalHeaderLabels(["Name", "Path", "Distance"])
+        #self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.model = TableModel(parent=self)
         self.table.setModel(self.model)
+        self.table.setSortingEnabled(True)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         
         hbox_radio = QHBoxLayout()
@@ -264,7 +265,7 @@ class ImageSimilarity(QWidget):
         if not savename:
             msg.setInformativeText("Don't forget to save your database to avoid having to rebuild it upon program restart.")
         else:
-            msg2.setInformativeText("The database was saved as {} and will be loaded as default on all subsequent program starts.".format(savename))
+            msg.setInformativeText("The database was saved as {} and will be loaded as default on all subsequent program starts.".format(savename))
         msg.setWindowTitle("Completed")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
@@ -303,7 +304,7 @@ class ImageSimilarity(QWidget):
             #Update Table Model
             self.model.removeRows(0, self.model.rowCount())
             for hit in hits:
-                row = [QStandardItem(hit['name']), QStandardItem(hit['path']), QStandardItem(str(hit['distance']))]
+                row = {"name":hit['name'], "path":hit['path'], "distance":hit['distance']}
                 self.model.appendRow(row)
 
     def switch_NN(self, b):
