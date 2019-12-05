@@ -28,7 +28,7 @@ def get_image_paths(path=".", extensions=["jpg","jpeg","png","tga","bmp"]):
     _ = [result.extend(glob.glob(os.path.join(path, '**/*.%s' % ext), recursive=True)) for ext in extensions]
     return result
 
-#Load images in resized form
+#Load images in resized form (Currently unused, takes long and way too much RAM)
 def load_images(paths):
     images = []
     for path in paths:
@@ -68,7 +68,6 @@ def build_pca_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_f
 
 def build_deep_autoencoder(img_shape = IMG_SHAPE, code_size = CODE_SIZE, weight_file = os.path.join(application_path, "encoder.h5")):
     """PCA's deeper brother."""
-    H,W,C = img_shape
     
     encoder = keras.models.Sequential()
     encoder.add(L.InputLayer(img_shape))
@@ -179,10 +178,13 @@ class ImageSimilarity(QWidget):
         self.button_load_img = QPushButton('Load Image')
         self.button_search = QPushButton('Search')
         self.button_search.setEnabled(False)
+        self.button_save_result = QPushButton('Save Result')
+        self.button_save_result.setEnabled(False)
         self.spinbox = QSpinBox()
         self.spinbox.setMinimum(-1)
         self.spinbox.setMaximum(99999)
         self.spinbox.setValue(0)
+        self.spinboxlabel = QLabel('Max. Distance:')
         self.table = QTableView()
         #self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -202,6 +204,7 @@ class ImageSimilarity(QWidget):
         hbox_buttons.addWidget(self.button_save_DB)
         hbox_buttons.addWidget(self.button_load_img)
         hbox_buttons.addWidget(self.button_search)
+        hbox_buttons.addWidget(self.spinboxlabel)
         hbox_buttons.addWidget(self.spinbox)
         
         radio_widget = QWidget()
@@ -214,6 +217,7 @@ class ImageSimilarity(QWidget):
         external_layout.addWidget(radio_widget)
         external_layout.addWidget(button_widget)
         external_layout.addWidget(self.table)
+        external_layout.addWidget(self.button_save_result)
         
         self.setLayout(external_layout)
         
@@ -226,6 +230,7 @@ class ImageSimilarity(QWidget):
         self.button_save_DB.clicked.connect(self.save_DB)
         self.button_load_img.clicked.connect(self.load_image)
         self.button_search.clicked.connect(self.search)
+        self.button_save_result.clicked.connect(self.save_search)
         
         #Build neural network
         self.encoder = build_pca_autoencoder()
@@ -300,12 +305,23 @@ class ImageSimilarity(QWidget):
     
     def search(self):
         if self.search_img_path:
+            self.lastSearchQuery = self.search_img_path
+            if not self.button_save_result.isEnabled():
+                self.button_save_result.setEnabled(True)
             hits = similarity_search(self.search_img_path, self.database, self.encoder, self.spinbox.value())
             #Update Table Model
             self.model.removeRows(0, self.model.rowCount())
             for hit in hits:
                 row = {"name":hit['name'], "path":hit['path'], "distance":hit['distance']}
                 self.model.appendRow(row)
+    
+    def save_search(self):
+        filename, _ = QFileDialog.getSaveFileName(self, 'Save Result', QDir.currentPath(), 'Text files (*.txt)')
+        if filename:
+            with open(filename, "w") as file:
+                file.write("Query image: {}\n\n".format(self.lastSearchQuery))
+                for i in range(self.model.rowCount()):
+                    file.write("Name: {}, Path: {}, Distance: {}\n".format(self.model.results[i]['name'], self.model.results[i]['path'], self.model.results[i]['distance']))
 
     def switch_NN(self, b):
         if b.text() == 'PCA' and b.isChecked():
