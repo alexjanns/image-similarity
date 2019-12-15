@@ -185,6 +185,9 @@ class ImageSimilarity(QWidget):
         self.spinbox.setMaximum(99999)
         self.spinbox.setValue(0)
         self.spinboxlabel = QLabel('Max. Distance:')
+        self.spinboxlabel.setAlignment(Qt.AlignRight)
+        self.searchlabel = QLabel('Query Image:')
+        self.countlabel = QLabel('# of Hits:')
         self.table = QTableView()
         #self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -216,6 +219,8 @@ class ImageSimilarity(QWidget):
         external_layout = QVBoxLayout()
         external_layout.addWidget(radio_widget)
         external_layout.addWidget(button_widget)
+        external_layout.addWidget(self.searchlabel)
+        external_layout.addWidget(self.countlabel)
         external_layout.addWidget(self.table)
         external_layout.addWidget(self.button_save_result)
         
@@ -300,6 +305,7 @@ class ImageSimilarity(QWidget):
         f, _ = QFileDialog.getOpenFileName(self, 'Load Image', QDir.homePath(), "Image Files (*.jpg *.jpeg *.png *.tga *.bmp)")
         if f:
             self.search_img_path = f
+            self.searchlabel.setText('Query Image: {}'.format(os.path.basename(f)))
             if not self.button_search.isEnabled():
                 self.button_search.setEnabled(True)
     
@@ -309,6 +315,7 @@ class ImageSimilarity(QWidget):
             if not self.button_save_result.isEnabled():
                 self.button_save_result.setEnabled(True)
             hits = similarity_search(self.search_img_path, self.database, self.encoder, self.spinbox.value())
+            self.countlabel.setText('# of hits: {}'.format(str(len(hits))))
             #Update Table Model
             self.model.removeRows(0, self.model.rowCount())
             for hit in hits:

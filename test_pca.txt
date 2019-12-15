@@ -1,0 +1,15 @@
+Query image: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test/IMG_0062_original.JPG
+
+Name: IMG_0062_original.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_original.JPG, Distance: 0.0
+Name: IMG_0062_scaled.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_scaled.JPG, Distance: 122.16548919677734
+Name: IMG_0062_slight_distortion.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_slight_distortion.JPG, Distance: 384.07794189453125
+Name: IMG_0062_rotated_1_counterclockwise.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_rotated_1_counterclockwise.JPG, Distance: 1032.0892333984375
+Name: IMG_0062_rotated_1_clockwise.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_rotated_1_clockwise.JPG, Distance: 1050.7335205078125
+Name: IMG_0062_strong_distortion.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_strong_distortion.JPG, Distance: 2181.885009765625
+Name: IMG_0062_grayscale.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_grayscale.JPG, Distance: 2213.54638671875
+Name: IMG_0062_saturated.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_saturated.JPG, Distance: 2503.625
+Name: IMG_0062_cut.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_cut.JPG, Distance: 3581.309814453125
+Name: IMG_0062_rotated_90_clockwise.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_rotated_90_clockwise.JPG, Distance: 10779.3994140625
+Name: IMG_0062_rotated_90_counterclockwise.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_rotated_90_counterclockwise.JPG, Distance: 11669.796875
+Name: IMG_0062_rotated_180.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_rotated_180.JPG, Distance: 15394.515625
+Name: IMG_0062_inverted.JPG, Path: D:/Users/Alex/Documents/Studium/Informatik/Bachelorarbeit/image-similarity/test\IMG_0062_inverted.JPG, Distance: 16611.890625
