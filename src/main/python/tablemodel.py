@@ -71,9 +71,15 @@ class TableModel(QAbstractTableModel):
             distance = self.results[index.row()]["distance"]
 
             if index.column() == 0:
-                return name
+                if isinstance(name, bytes):
+                    return name.decode('UTF-8')
+                else:
+                    return name
             elif index.column() == 1:
-                return path
+                if isinstance(path, bytes):
+                    return path.decode('UTF-8')
+                else:
+                    return path
             elif index.column() == 2:
                 return str(distance)
 

@@ -7,7 +7,9 @@ import keras, keras.layers as L, keras.backend as K
 import numpy as np
 from scipy.misc import imresize
 import numpy as np
-import pickle
+import msgpack
+import msgpack_numpy as m
+m.patch()
 
 #Constants
 IMG_SHAPE = (224, 224, 3)
@@ -103,17 +105,23 @@ def build_code_database(encoder, paths, callback, graph):
 
 def save_database(database, name, overwrite=False):
     if((os.path.isfile(name) and overwrite) or not os.path.isfile(name)):
-        pickle.dump(database, open(name, "wb"))
+        with open(name, "wb") as file:
+            packed = msgpack.packb(database)
+            file.write(packed)
     elif(os.path.isfile(name) and not overwrite):
         i = 1
         n, ext = os.path.split(name)
         while(os.path.isfile(n + i + ext)):
             i += 1
-        pickle.dump(database, open(n + i + ext, "wb"))
+        with open(n + i + ext, "wb") as file:
+            packed = msgpack.packb(database)
+            file.write(packed)
 
 def load_database(name):
     if(os.path.isfile(name)):
-        return pickle.load(open(name, "rb"))
+        with open(name, "rb") as file:
+            content = file.read()
+            return msgpack.unpackb(content)
 
 # Compare input image to database (using euclidean distance aka L2 norm of the codes)
 def l2_norm(v, u):
@@ -123,7 +131,10 @@ def similarity_search(inp_path, database, encoder, max_dist=0):
     code = encoder.predict(imresize(imageio.imread(inp_path, pilmode="RGB"), IMG_SHAPE, interp="bilinear")[None])
     hits = []
     for d in database.values():
-        dist = l2_norm(code, d['code'])
+        if b'code' in d.keys():
+            dist = l2_norm(code, d[b'code'])
+        else:
+            dist = l2_norm(code, d['code'])
         if max_dist == -1 or dist <= max_dist:
             d['distance'] = dist
             hits.append(d)
@@ -241,10 +252,10 @@ class ImageSimilarity(QWidget):
         self.encoder = build_pca_autoencoder()
         
         #See if a database already exists
-        if not os.path.isfile(os.path.join(application_path, 'std_db_pca.p')):
-            self.firstTimeStart(os.path.join(application_path, 'std_db_pca.p'))
+        if not os.path.isfile(os.path.join(application_path, 'std_db_pca.db')):
+            self.firstTimeStart(os.path.join(application_path, 'std_db_pca.db'))
         else:
-            self.database = load_database(os.path.join(application_path, 'std_db_pca.p'))
+            self.database = load_database(os.path.join(application_path, 'std_db_pca.db'))
 
     def firstTimeStart(self, savename):
         msg = QMessageBox()
@@ -319,7 +330,10 @@ class ImageSimilarity(QWidget):
             #Update Table Model
             self.model.removeRows(0, self.model.rowCount())
             for hit in hits:
-                row = {"name":hit['name'], "path":hit['path'], "distance":hit['distance']}
+                if b'name' in hit.keys():
+                    row = {"name":hit[b'name'], "path":hit[b'path'], "distance":hit['distance']}
+                else:
+                    row = {"name":hit['name'], "path":hit['path'], "distance":hit['distance']}
                 self.model.appendRow(row)
     
     def save_search(self):
@@ -334,17 +348,19 @@ class ImageSimilarity(QWidget):
         if b.text() == 'PCA' and b.isChecked():
             reset_tf_session()
             self.encoder = build_pca_autoencoder()
-            self.database = load_database(os.path.join(application_path, 'std_db_pca.p'))
+            self.database = load_database(os.path.join(application_path, 'std_db_pca.db'))
             self.search_img_path = None
+            self.searchlabel.setText('Query Image:')
             self.button_search.setEnabled(False)
         elif b.text() == 'Convolutional' and b.isChecked():
             reset_tf_session()
             self.encoder = build_deep_autoencoder()
-            if os.path.isfile(os.path.join(application_path, 'std_db_deep.p')):
-                self.database = load_database(os.path.join(application_path, 'std_db_deep.p'))
+            if os.path.isfile(os.path.join(application_path, 'std_db_deep.db')):
+                self.database = load_database(os.path.join(application_path, 'std_db_deep.db'))
             else:
-                self.firstTimeStart(os.path.join(application_path, 'std_db_deep.p'))
+                self.firstTimeStart(os.path.join(application_path, 'std_db_deep.db'))
             self.search_img_path = None
+            self.searchlabel.setText('Query Image:')
             self.button_search.setEnabled(False)
         else:
             pass
@@ -371,12 +387,12 @@ class ImageSimilarity(QWidget):
             build_thread.start()
     
     def load_DB(self):
-        dbname, _ = QFileDialog.getOpenFileName(self, 'Load Database', QDir.currentPath(), "Database files (*.p)")
+        dbname, _ = QFileDialog.getOpenFileName(self, 'Load Database', QDir.currentPath(), "Database files (*.db)")
         if dbname:
             self.database = load_database(dbname)
     
     def save_DB(self):
-        filename, _ = QFileDialog.getSaveFileName(self, 'Save Database', QDir.currentPath(), 'Database files (*.p)')
+        filename, _ = QFileDialog.getSaveFileName(self, 'Save Database', QDir.currentPath(), 'Database files (*.db)')
         if filename:
             save_database(self.database, filename, True)
 
