@@ -10,6 +10,8 @@ import numpy as np
 import msgpack
 import msgpack_numpy as m
 m.patch()
+#from timeit import default_timer as timer
+
 
 #Constants
 IMG_SHAPE = (224, 224, 3)
@@ -322,6 +324,7 @@ class ImageSimilarity(QWidget):
     
     def search(self):
         if self.search_img_path:
+            #start = timer()
             self.lastSearchQuery = self.search_img_path
             if not self.button_save_result.isEnabled():
                 self.button_save_result.setEnabled(True)
@@ -335,6 +338,8 @@ class ImageSimilarity(QWidget):
                 else:
                     row = {"name":hit['name'], "path":hit['path'], "distance":hit['distance']}
                 self.model.appendRow(row)
+            #end = timer()
+            #print('Search Time: {} seconds'.format(end - start))
     
     def save_search(self):
         filename, _ = QFileDialog.getSaveFileName(self, 'Save Result', QDir.currentPath(), 'Text files (*.txt)')
@@ -374,6 +379,7 @@ class ImageSimilarity(QWidget):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.Directory)
         if dlg.exec_():
+            #start = timer()
             dirs = dlg.selectedFiles()
             paths = get_image_paths(dirs[0])
             self.progresswindow = self.make_progress_window(len(paths))
@@ -384,6 +390,7 @@ class ImageSimilarity(QWidget):
             build_thread.finished.connect(self.set_database)
             build_thread.close.connect(self.progresswindow.close)
             build_thread.close.connect(self.build_message)
+            #build_thread.close.connect(lambda : print(timer() - start))
             build_thread.start()
     
     def load_DB(self):

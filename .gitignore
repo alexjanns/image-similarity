@@ -23,3 +23,9 @@ test/WhatsApp Image 2019-11-25 at 20.47.51.jpeg
 test/WhatsApp Image 2019-11-25 at 20.48.14.jpeg
 
 *.p
+
+test searches/
+
+src/main/python/std_db_deep.db
+
+full_pca.db
